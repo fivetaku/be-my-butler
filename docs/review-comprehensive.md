@@ -267,6 +267,8 @@ AI 코딩 도구 시장은 크게 4개 카테고리로 분류된다:
 
 BMB는 **오케스트레이터** 카테고리에 해당하며, 이 카테고리는 2025-2026년에 급성장 중이다.
 
+> 참고: Cursor도 멀티 에이전트를 시도했으나, 동등 권한 에이전트 + 락 방식(에이전트가 락을 너무 오래 보유)과 낙관적 병행 제어(에이전트가 위험 회피적으로 변함) 모두 실패. 결국 **Planner → Worker → Judge** 3역할 구조로 전환했다. BMB의 Lead(Planner) → Executor(Worker) → Verifier(Judge) 구조와 유사한 결론에 도달한 셈이다.
+
 ### 6.2 주요 경쟁 제품 상세 비교
 
 #### vs. Claude Code Agent Teams (가장 직접적 경쟁)
@@ -310,7 +312,34 @@ BMB는 **오케스트레이터** 카테고리에 해당하며, 이 카테고리�
 | **가격** | Claude API 비용 | 무료 (API 비용 별도) |
 | **커뮤니티** | 신규 | 22K+ GitHub 스타 |
 
-**평가**: Roo Code가 접근성과 커뮤니티에서 압도적이나, BMB의 검증 깊이와 파이프라인 체계성이 차별화 요소. Roo Code의 "모드"는 BMB의 "에이전트"보다 훨씬 가벼움.
+**평가**: Roo Code가 접근성과 커뮤니티에서 압도적이나, BMB의 검증 깊이와 파이프라인 체계성이 차별화 요소. Roo Code의 "모드"는 BMB의 "에이전트"보다 훨씬 가벼움. 다만 Roo Code의 AgentAutoFlow(커뮤니티)가 Planner→Coder-Jr→Coder-Sr 에스컬레이션 구조를 추가하며 BMB 방향으로 진화 중.
+
+#### vs. Composio Agent Orchestrator (아키텍처적 가장 유사)
+
+| 항목 | BMB | Composio Agent Orchestrator |
+|------|-----|---------------------------|
+| **철학** | 정확성 최우선 | 확장성 최우선 |
+| **에이전트** | Claude Code 전용 8개 | 에이전트 불가지론 (Claude/Codex/Aider 어떤 것이든) |
+| **런타임** | tmux 전용 | tmux, Docker 등 런타임 불가지론 |
+| **트래커** | 없음 | GitHub, Linear 등 트래커 불가지론 |
+| **격리** | git worktree | git worktree (동일) |
+| **상태 관리** | 파일 기반 핸드오프 | 상태 머신 (resume-on-failure) |
+| **검증** | 크로스모델 블라인드 | 없음 |
+| **카운슬** | 다회전 디베이트 | 없음 |
+| **CI 통합** | 수동 | 자동 (CI 실패 감지 → 자동 수정) |
+
+**평가**: Composio가 2026년 2월 오픈소스로 공개한 Agent Orchestrator는 BMB와 아키텍처적으로 가장 유사(병렬 에이전트 + worktree 격리). 하지만 Composio는 "어떤 에이전트든 오케스트레이션"에 집중하고, BMB는 "검증 프로토콜의 깊이"에 집중. BMB의 블라인드 검증과 카운슬 디베이트는 Composio에도 없는 차별화.
+
+#### vs. Claude Squad / Conductor (tmux 기반 유사 도구)
+
+| 항목 | BMB | Claude Squad | Conductor |
+|------|-----|-------------|-----------|
+| **구조** | 8 전문 에이전트 | N개 Claude Code 병렬 | 에이전트별 worktree |
+| **역할 분리** | 명시적 (Architect, Executor 등) | 없음 (동일 에이전트 복제) | 대시보드 관리 |
+| **검증** | 크로스모델 블라인드 | 없음 | review-as-you-go |
+| **카운슬** | 내장 | 없음 | 없음 |
+
+**평가**: Claude Squad은 "Claude Code를 tmux에서 여러 개 돌리기"의 단순 버전이고, BMB는 그 위에 역할 분리, 검증, 학습 프로토콜을 쌓은 고급 버전. 같은 tmux 기반이지만 복잡도와 목표가 다름.
 
 #### vs. OpenHands
 
@@ -338,21 +367,39 @@ BMB는 **오케스트레이터** 카테고리에 해당하며, 이 카테고리�
 
 **평가**: Aider는 "빠른 페어 프로그래머", BMB는 "신중한 전문가 팀". 대부분의 일상적 코딩 작업에는 Aider가 더 적합하지만, 복잡하고 위험한 변경에는 BMB가 더 안전.
 
-### 6.3 기능 비교 매트릭스
+### 6.3 가격 비교
 
-| 기능 | BMB | Devin | Roo Code | OpenHands | Aider | Claude Teams |
-|------|-----|-------|----------|-----------|-------|-------------|
-| 멀티 에이전트 | 8개 전문 | 멀티 세션 | 5 모드 | 계층적 | 단일 | 팀 기반 |
-| 크로스모델 검증 | 블라인드 | X | X | X | X | X |
-| 카운슬 디베이트 | 다회전 | X | X | X | X | X |
-| 워크트리 격리 | 에이전트별 | 샌드박스 | X | Docker | X | 세션별 |
-| 자동학습 | 3계층 | Wiki | X | X | X | X |
-| 세션 연속성 | session-prep.md | 내장 | X | 이벤트 소싱 | 대화 이력 | X |
-| FTS5 지식DB | 내장 | Devin Search | X | X | X | X |
-| 오프라인 사용 | X | X | 로컬 LLM | 로컬 LLM | 로컬 LLM | X |
-| 설치 난이도 | 중간 | 낮음 | 낮음 | 중간 | 낮음 | 낮음 |
-| 가격 | API 비용 | $20+/월 | API 비용 | API 비용 | API 비용 | API 비용 |
-| 오픈소스 | MIT | X | Apache 2.0 | MIT | Apache 2.0 | X |
+| 도구 | 유형 | 가격 | 크로스모델 검증 |
+|------|------|------|----------------|
+| **BMB** | 멀티에이전트 오케스트레이터 | 무료(OSS) + API 비용 | 블라인드 크로스모델 |
+| **Aider** | 단일 에이전트 CLI | 무료(OSS) + API 비용 | 없음 |
+| **OpenHands** | 멀티에이전트 플랫폼 | 무료~$500/월 클라우드 | 없음 |
+| **Devin** | 자율 에이전트 | $20-500+/월 + ACU | 없음 |
+| **Cursor** | AI IDE | 무료~$200/월 | 없음 |
+| **Windsurf** | AI IDE | 무료~$60/유저/월 | 없음 |
+| **Cline** | 단일 에이전트 VS Code | 무료(OSS) + API 비용 | 없음 |
+| **Codex CLI** | 단일 에이전트 CLI | $20-200/월(ChatGPT 구독) | 실험적(같은 모델) |
+| **Gemini CLI** | 단일 에이전트 CLI | 무료(관대한 무료 티어) | 없음 |
+| **Claude Code** | 단일 에이전트 CLI | $20-200/월(Claude 구독) | 없음(단일 프로바이더) |
+| **GitHub Copilot** | 에이전트 + IDE | $10-39/유저/월 | 없음 |
+| **Roo Code** | 멀티모드 VS Code | 무료(OSS) + API 비용 | 부분적(모드별 다른 모델) |
+| **Composio** | 에이전트 오케스트레이터 | 무료(OSS) | 없음(에이전트 불가지론) |
+
+### 6.4 기능 비교 매트릭스
+
+| 기능 | BMB | Devin | Roo Code | OpenHands | Aider | Claude Teams | Composio |
+|------|-----|-------|----------|-----------|-------|-------------|----------|
+| 멀티 에이전트 | 8개 전문 | 멀티 세션 | 5 모드 | 계층적 | 단일 | 팀 기반 | 불가지론 |
+| 크로스모델 검증 | 블라인드 | X | 부분적 | X | X | X | X |
+| 카운슬 디베이트 | 다회전 | X | X | X | X | X | X |
+| 워크트리 격리 | 에이전트별 | 샌드박스 | X | Docker | X | 세션별 | worktree |
+| 자동학습 | 3계층 | Wiki | X | X | X | X | X |
+| 세션 연속성 | session-prep.md | 내장 | X | 이벤트 소싱 | 대화 이력 | X | 상태 머신 |
+| FTS5 지식DB | 내장 | Devin Search | X | X | X | X | X |
+| CI 자동 수정 | X | X | X | X | X | X | 내장 |
+| 오프라인 사용 | X | X | 로컬 LLM | 로컬 LLM | 로컬 LLM | X | X |
+| 설치 난이도 | 중간 | 낮음 | 낮음 | 중간 | 낮음 | 낮음 | 낮음 |
+| 오픈소스 | MIT | X | Apache 2.0 | MIT | Apache 2.0 | X | MIT |
 
 ---
 
@@ -480,6 +527,15 @@ BMB v0.1.0은 **개념 증명(PoC)으로서 뛰어나다**. 핵심 아이디어(
 
 *이 리뷰는 소스 코드, 문서, 웹 리서치를 기반으로 작성되었습니다.*
 
+### 시장 데이터
+- 글로벌 AI 에이전트 시장: 2025년 $7.84B → 2030년 $52.62B (CAGR 46.3%)
+- Gartner 예측: 2026년 말까지 40% 기업 앱에 AI 에이전트 탑재 (2025년 5% 미만)
+- Google DORA Report 2025: AI 도입 90% 증가 → 버그율 9% 상승, 코드 리뷰 시간 91% 증가, PR 크기 154% 증가
+- Claude Code: 2025년 11월 ARR $1B+, 2026년 초 ~$2B
+- Devin: $10.2B 기업가치, Windsurf ~$250M 인수
+- OpenHands: $18.8M Series A, 68.6K GitHub 스타
+- Roo Code: 22K+ GitHub 스타, 1.2M VS Code 설치
+
 ### 참고 자료
 - [Roo Code — AI dev team](https://roocode.com/)
 - [Roo Code vs Cline 비교 (2026)](https://www.qodo.ai/blog/roo-code-vs-cline/)
@@ -493,3 +549,10 @@ BMB v0.1.0은 **개념 증명(PoC)으로서 뛰어나다**. 핵심 아이디어(
 - [Claude Code Hidden Multi-Agent System](https://paddo.dev/blog/claude-code-hidden-swarm/)
 - [Top AI Agent Orchestration Frameworks 2025](https://www.kubiya.ai/blog/ai-agent-orchestration-frameworks)
 - [Top 9 AI Agent Frameworks (March 2026)](https://www.shakudo.io/blog/top-9-ai-agent-frameworks)
+- [Composio Agent Orchestrator (GitHub)](https://github.com/ComposioHQ/agent-orchestrator)
+- [Composio 오픈소스 발표 — MarkTechPost](https://www.marktechpost.com/2026/02/23/composio-open-sources-agent-orchestrator-to-help-ai-developers-build-scalable-multi-agent-workflows-beyond-the-traditional-react-loops/)
+- [Cline CLI 2.0 — DevOps.com](https://devops.com/cline-cli-2-0-turns-your-terminal-into-an-ai-agent-control-plane/)
+- [Cursor 2.5 Features](https://cursor.com/features)
+- [GitHub Copilot Coding Agent](https://github.com/newsroom/press-releases/coding-agent-for-github-copilot)
+- [Amazon Q Developer](https://aws.amazon.com/q/developer/)
+- [SWE-agent (Princeton/Stanford)](https://github.com/SWE-agent/SWE-agent)
